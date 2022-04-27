@@ -31,7 +31,7 @@ type name struct {
 func init() {
 	kp = kingpin.New("AutoMute", "Автоматическое отключение уведомлений в телеграм")
 	sec = kp.Flag("sec", "Длительность в секундах за которое будут считаться сообщения (параметр \"count\")").Short('s').Default("15").Int()
-	msgcount = kp.Flag("count", "Количество сообщений пришедших за \"sec\"").Short('с').Default("3").Int()
+	msgcount = kp.Flag("count", "Количество сообщений полученных за \"sec\"").Short('с').Default("3").Int()
 	durmute = kp.Flag("durmute", "Время в часах на сколько нужно замьютить").Default("d").Default("1").Int()
 }
 
@@ -145,13 +145,17 @@ func Main(raw *tg.Client, dispatcher *tg.UpdateDispatcher) error {
 				log.Printf("произошла ошибка: %v\n", err)
 				return err
 			}
-			if userData.FullUser.NotifySettings.MuteUntil == 0 {
+			if userData.FullUser.NotifySettings.MuteUntil <= int(time.Now().Unix()) {
 				Append(&AutoMute{
 					peer: &userData.FullUser,
 					ctx:  ctx,
 					raw:  raw,
 					msg:  msg,
 				}).Mute(&tg.InputPeerUser{UserID: userData.FullUser.ID})
+			} else if len(userData.Users) == 1 {
+				if u, ok := userData.Users[0].(*tg.User); ok {
+					fmt.Printf("Пользователь %s %s уже замьючен\n", u.FirstName, u.LastName)
+				}
 			}
 		}
 
